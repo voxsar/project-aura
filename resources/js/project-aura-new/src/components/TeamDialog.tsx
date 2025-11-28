@@ -77,6 +77,7 @@ export function TeamDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+	console.log('Form Data on Submit:', formData);
     onSave({
       ...formData,
     });

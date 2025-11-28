@@ -15,12 +15,15 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'Admin',
-            'email' => 'miyuru@artslabcreatives.com',
-            'email_verified_at' => now(),
-            'password' => Hash::make('miyuru@artslabcreatives.com@123'),
-            'remember_token' => Str::random(10),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'miyuru@artslabcreatives.com'],
+            [
+                'name' => 'Admin',
+                'email_verified_at' => now(),
+                'password' => Hash::make('miyuru@artslabcreatives.com@123'),
+                'role' => 'admin',
+                'remember_token' => Str::random(10),
+            ]
+        );
     }
 }

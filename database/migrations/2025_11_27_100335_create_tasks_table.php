@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('project_id')->constrained()->cascadeOnDelete();
             $table->foreignId('assignee_id')->nullable()->constrained('users')->nullOnDelete();
             $table->date('due_date')->nullable();
-            $table->enum('user_status', ['pending', 'in-progress', 'complete'])->default('pending');
+            $table->string('user_status')->default('pending');
             $table->foreignId('project_stage_id')->nullable()->constrained('stages')->nullOnDelete();
             $table->enum('priority', ['low', 'medium', 'high'])->default('medium');
             $table->json('tags')->nullable();
