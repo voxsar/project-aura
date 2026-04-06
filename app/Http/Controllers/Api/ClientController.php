@@ -52,7 +52,7 @@ class ClientController extends Controller
 
         $query = Client::withCount(['contacts', 'projects'])
             ->with(['projects' => function ($query) {
-                $query->with(['department']); // Include department for project badge
+                $query->with(['department', 'group']); // Include department and group
             }]);
 
         if ($request->filled('search')) {
@@ -94,7 +94,7 @@ class ClientController extends Controller
     {
         $this->checkPermission();
         return response()->json($client->load(['contacts', 'projects' => function ($query) {
-            $query->with(['department']);
+            $query->with(['department', 'group']);
         }]));
     }
 

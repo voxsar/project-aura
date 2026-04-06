@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
 	ArrowLeft,
 	ExternalLink,
 	FolderKanban,
+	FolderOpen,
 	Clock,
 	Copy,
 	Check,
@@ -31,7 +32,9 @@ import { Client, ClientContact } from "@/types/client";
 import { Estimate } from "@/types/estimate";
 import { clientService } from "@/services/clientService";
 import { projectService } from "@/services/projectService";
+import { projectGroupService } from "@/services/projectGroupService";
 import { estimateService } from "@/services/estimateService";
+import { Project } from "@/types/project";
 import { useToast } from "@/hooks/use-toast";
 import { ClientDialog } from "@/components/ClientDialog";
 import { ContactDialog } from "@/components/ContactDialog";
@@ -256,6 +259,55 @@ export default function ClientProfile() {
 
 	if (!client) return null;
 
+	const groupedProjects = {
+		groups: [] as { group: any; projects: Project[] }[],
+		ungrouped: [] as Project[]
+	};
+
+	if (client.projects) {
+		const groupMap = new Map<string, { group: any; projects: Project[] }>();
+		client.projects.forEach(project => {
+			if (project.group?.id) {
+				const groupId = String(project.group.id);
+				if (!groupMap.has(groupId)) {
+					groupMap.set(groupId, { group: project.group, projects: [] });
+				}
+				groupMap.get(groupId)!.projects.push(project);
+			} else {
+				groupedProjects.ungrouped.push(project);
+			}
+		});
+		groupedProjects.groups = Array.from(groupMap.values());
+	}
+
+	const renderProjectCard = (project: Project) => (
+		<div
+			key={project.id}
+			onClick={() => navigate(`/project/${project.id}/overview`)}
+			className="p-4 rounded-xl border bg-background/50 hover:bg-muted/30 transition-all cursor-pointer group border-border/50 hover:border-primary/20"
+		>
+			<div className="flex justify-between items-start mb-2">
+				<h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+					{project.name}
+				</h3>
+				<Badge className="text-[10px] px-2 py-0 h-4 capitalize font-normal">
+					{project.status || 'active'}
+				</Badge>
+			</div>
+			<div className="flex items-center gap-4 text-xs text-muted-foreground">
+				<div className="flex items-center gap-1">
+					<Clock className="h-3 w-3" />
+					{project.estimatedHours || 0}h
+				</div>
+				{project.department && (
+					<Badge variant="secondary" className="text-[10px] px-2 py-0 h-4 font-normal">
+						{project.department.name}
+					</Badge>
+				)}
+			</div>
+		</div>
+	);
+
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center justify-between">
@@ -372,37 +424,43 @@ export default function ClientProfile() {
 								{client.projects?.length || 0} Total
 							</Badge>
 						</CardHeader>
-						<CardContent>
+						<CardContent className="space-y-6">
 							{client.projects && client.projects.length > 0 ? (
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									{client.projects.map(project => (
-										<div
-											key={project.id}
-											onClick={() => navigate(`/project/${project.id}/overview`)}
-											className="p-4 rounded-xl border bg-background/50 hover:bg-muted/30 transition-all cursor-pointer group border-border/50 hover:border-primary/20"
-										>
-											<div className="flex justify-between items-start mb-2">
-												<h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-													{project.name}
-												</h3>
-												<Badge className="text-[10px] px-2 py-0 h-4 capitalize font-normal">
-													{project.status || 'active'}
-												</Badge>
-											</div>
-											<div className="flex items-center gap-4 text-xs text-muted-foreground">
-												<div className="flex items-center gap-1">
-													<Clock className="h-3 w-3" />
-													{project.estimatedHours || 0}h
+								<>
+									{groupedProjects.groups.length > 0 && (
+										<div className="space-y-6">
+											{groupedProjects.groups.map(({ group, projects }) => (
+												<div key={group.id} className="space-y-3">
+													<div className="flex items-center gap-2 px-1">
+														<FolderOpen className="h-4 w-4 text-primary" />
+														<h4 className="text-sm font-semibold text-foreground/80">{group.name}</h4>
+														<Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal">
+															{projects.length}
+														</Badge>
+														<div className="h-px flex-grow bg-border/40 ml-2" />
+													</div>
+													<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+														{projects.map(project => renderProjectCard(project))}
+													</div>
 												</div>
-												{project.department && (
-													<Badge variant="secondary" className="text-[10px] px-2 py-0 h-4 font-normal">
-														{project.department.name}
-													</Badge>
-												)}
+											))}
+										</div>
+									)}
+
+									{groupedProjects.ungrouped.length > 0 && (
+										<div className="space-y-3">
+											{groupedProjects.groups.length > 0 && (
+												<div className="flex items-center gap-2 px-1">
+													<h4 className="text-sm font-semibold text-foreground/80">Other Projects</h4>
+													<div className="h-px flex-grow bg-border/40 ml-2" />
+												</div>
+											)}
+											<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+												{groupedProjects.ungrouped.map(project => renderProjectCard(project))}
 											</div>
 										</div>
-									))}
-								</div>
+									)}
+								</>
 							) : (
 								<div className="py-12 text-center space-y-3">
 									<FolderKanban className="h-10 w-10 text-muted-foreground mx-auto opacity-20" />
